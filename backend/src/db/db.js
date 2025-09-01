@@ -1,0 +1,801 @@
+// src/db/db.js
+const { Sequelize, DataTypes } = require("sequelize");
+
+const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: "./projects.db",
+  logging: false,
+  timestamps: false,
+});
+
+const Project = sequelize.define("Project", {
+  projectCode: { type: DataTypes.STRING, unique: true, allowNull: false },
+  description: { type: DataTypes.STRING, allowNull: false },
+  clientName: { type: DataTypes.STRING, allowNull: false },
+  projectLocation: { type: DataTypes.STRING, allowNull: false },
+  projectValue: { type: DataTypes.FLOAT, allowNull: false },
+  startDate: { type: DataTypes.STRING, allowNull: false },
+  endDate: { type: DataTypes.STRING, allowNull: false },
+  concreteQty: { type: DataTypes.INTEGER, allowNull: false },
+  fuelCost: { type: DataTypes.FLOAT, allowNull: false },
+  powerCost: { type: DataTypes.FLOAT, allowNull: false },
+  filePath: { type: DataTypes.STRING, allowNull: false },
+  password: { type: DataTypes.STRING, allowNull: false },
+});
+
+const BPFixedExpense = sequelize.define("BPFixedExpense", {
+  Category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  Cost: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+});
+
+const CategorySheet = sequelize.define("CategorySheet", {
+  Category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  SheetName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
+
+const FixedExpense = sequelize.define("FixedExpense", {
+  Category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  Cost: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  remarks: {
+    type: DataTypes.STRING,
+  },
+});
+
+const HiredEquipment = sequelize.define("HiredEquipment", {
+  Categoryname: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  EquipmentName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  Make: {
+    type: DataTypes.STRING,
+  },
+  Model: {
+    type: DataTypes.STRING,
+  },
+  Capacity: {
+    type: DataTypes.STRING,
+  },
+  HireCharges: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  RAndMPercentage: {
+    type: DataTypes.FLOAT,
+  },
+  Hrs_PerMonth: {
+    type: DataTypes.INTEGER,
+  },
+  Fuel_PerHour: {
+    type: DataTypes.FLOAT,
+  },
+  Power_PerHour: {
+    type: DataTypes.FLOAT,
+  },
+  OperatorCost_PerMonth: {
+    type: DataTypes.FLOAT,
+  },
+});
+
+const LightingEquipment = sequelize.define("LightingEquipment", {
+  Categoryname: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  EquipmentName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  Capacity: {
+    type: DataTypes.STRING,
+  },
+  Make: {
+    type: DataTypes.STRING,
+  },
+  Model: {
+    type: DataTypes.STRING,
+  },
+  PowerPerUnit: {
+    type: DataTypes.FLOAT,
+  },
+  ConnectedLoad: {
+    type: DataTypes.FLOAT,
+  },
+  UtilityFactor: {
+    type: DataTypes.FLOAT,
+  },
+});
+
+const MajorEquipment = sequelize.define("MajorEquipment", {
+  Categoryname: { type: DataTypes.STRING, allowNull: false },
+  ConnectedLoadPerMC: { type: DataTypes.FLOAT },
+  EquipmentName: { type: DataTypes.STRING, allowNull: false },
+  Make: { type: DataTypes.STRING },
+  Model: { type: DataTypes.STRING },
+  Capacity: { type: DataTypes.STRING },
+  Drive: { type: DataTypes.STRING },
+  RepValue: { type: DataTypes.FLOAT },
+  DepreciationPercentage: { type: DataTypes.FLOAT },
+  Depreciation_Fixed: { type: DataTypes.FLOAT },
+  Hrs_PerMonth: { type: DataTypes.INTEGER },
+  Fuel_PerHour: { type: DataTypes.FLOAT },
+  Power_PerHour: { type: DataTypes.FLOAT },
+  OperatorCost_PerMonth: { type: DataTypes.FLOAT },
+  RAndMPer_275: { type: DataTypes.FLOAT },
+  RAndMPer_125: { type: DataTypes.FLOAT },
+  RAndMPerc_050: { type: DataTypes.FLOAT },
+  MaintCost_PerMonth: { type: DataTypes.FLOAT },
+  PowerPerUnit_x0028_HP_x0029_: { type: DataTypes.FLOAT },
+  UtilityFactor: { type: DataTypes.FLOAT },
+});
+
+const MinorEquipment = sequelize.define("MinorEquipment", {
+  Categoryname: { type: DataTypes.STRING, allowNull: false },
+  EquipmentName: { type: DataTypes.STRING, allowNull: false },
+  Make: { type: DataTypes.STRING },
+  Model: { type: DataTypes.STRING },
+  Capacity: { type: DataTypes.STRING },
+  Drive: { type: DataTypes.STRING },
+  CostOfNewEquipment: { type: DataTypes.FLOAT },
+  RAndMPercentage: { type: DataTypes.FLOAT },
+  Fuel_PerHour: { type: DataTypes.FLOAT },
+  Power_PerHour: { type: DataTypes.FLOAT },
+  DepreciationPercentage: { type: DataTypes.FLOAT },
+  Hrs_PerMonth: { type: DataTypes.INTEGER },
+  OperatorCost_PerMonth: { type: DataTypes.FLOAT },
+  PowerPerUnit_x0028_HP_x0029_: { type: DataTypes.FLOAT },
+  ConnectedLoadPerMC: { type: DataTypes.FLOAT },
+  UtilityFactor: { type: DataTypes.FLOAT },
+});
+
+(async () => {
+  try {
+    // await sequelize.sync({ alter: true });
+    // console.log("Database & tables synced!");
+
+    // Seed BPFixedExpense data (only if table is empty)
+    const bpFixedCount = await BPFixedExpense.count();
+    if (bpFixedCount === 0) {
+      console.log("Seeding BPFixedExpense data...");
+      await BPFixedExpense.bulkCreate([
+        { Category: "Foundation cost with wooden partition", Cost: 800000 },
+        { Category: "Foundation cost with partially new steel", Cost: 1200000 },
+        { Category: "Foundation cost with fully new steel", Cost: 1800000 },
+        { Category: "Silo foundation cost", Cost: 100000 },
+        { Category: "Erection charges for Plant and Bin", Cost: 150000 },
+        { Category: "Erection charges for Silo", Cost: 100000 },
+        { Category: "Dismatling charges for Plant and Bin", Cost: 150000 },
+        { Category: "Dismatling charges for Silo", Cost: 100000 },
+      ]);
+      console.log("BPFixedExpense data seeded!");
+    }
+
+    // Seed CategorySheets data (only if table is empty)
+    const categorySheetsCount = await CategorySheet.count();
+    if (categorySheetsCount === 0) {
+      console.log("Seeding CategorySheets data...");
+      await CategorySheet.bulkCreate([
+        { Category: "Concreting", SheetName: "Output Concreting" },
+        { Category: "Cranes", SheetName: "Output Cranes" },
+        { Category: "Material Handling", SheetName: "Output Material Handling" },
+        { Category: "Non Concreting", SheetName: "Output Non concreting" },
+        { Category: "DG Setsput", SheetName: "Output DG Sets" },
+      ]);
+      console.log("CategorySheets data seeded!");
+    }
+
+    // Seed FixedExpense data (only if table is empty)
+    const FixedExpenseCount = await FixedExpense.count();
+    if (FixedExpenseCount === 0) {
+      console.log("Seeding FixedExpense data...");
+      await FixedExpense.bulkCreate([
+        { Category: "Foundation Cost With Pile", Cost: 1200000, remarks: "" },
+        { Category: "Foundation cost without Pile", Cost: 900000, remarks: "" },
+        { Category: "Tie Cost", Cost: 150000, remarks: "" },
+        { Category: "Cframe Cost (fabricated)", Cost: 45000, remarks: "" },
+        { Category: "Cframe Cost (OEM)", Cost: 72000, remarks: "" },
+        { Category: "Erection Charges by External Crane", Cost: 250000, remarks: "" },
+        { Category: "Erection Charges by (Manually)", Cost: 800000, remarks: "" },
+        { Category: "Dismantling charges by External Crane", Cost: 250000, remarks: "" },
+        { Category: "Dismantling charges (Manually)", Cost: 700000, remarks: "" },
+      ]);
+      console.log("FixedExpense data seeded!");
+    }
+
+    // Seed HiredEquipment data (only if table is empty)
+    const hiredEquipmentCount = await HiredEquipment.count();
+    if (hiredEquipmentCount === 0) {
+      console.log("Seeding HiredEquipment data...");
+      await HiredEquipment.bulkCreate([
+        {
+          Categoryname: "Excav / Earthwork",
+          EquipmentName: "Excavator Cum Loader",
+          Make: "JCB",
+          Model: "3DX",
+          Capacity: "1CUM",
+          HireCharges: 80000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 250,
+          Fuel_PerHour: 5.5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Gensets",
+          EquipmentName: "Power Generator",
+          Make: "Kirloskar",
+          Model: "6R1080",
+          Capacity: "82.5KVA",
+          HireCharges: 24000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 360,
+          Fuel_PerHour: 8,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Gensets",
+          EquipmentName: "Power Generator",
+          Make: "Kirloskar",
+          Model: "6R1080",
+          Capacity: "125KVA",
+          HireCharges: 35000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 360,
+          Fuel_PerHour: 12,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Gensets",
+          EquipmentName: "Power Generator",
+          Make: "Kirloskar",
+          Model: "4R1040",
+          Capacity: "62.5 KCA",
+          HireCharges: 22000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 360,
+          Fuel_PerHour: 6,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "HiredConveyance",
+          EquipmentName: "CAR",
+          Make: "TATA",
+          Model: "INDICA",
+          Capacity: "4 Seater",
+          HireCharges: 34000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 2500,
+          Fuel_PerHour: 15,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "HiredConveyance",
+          EquipmentName: "CAR",
+          Make: "TATA",
+          Model: "SUMO",
+          Capacity: "10 Seater",
+          HireCharges: 37000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 2500,
+          Fuel_PerHour: 10,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "HiredConveyance",
+          EquipmentName: "Mini Van",
+          Make: "Mahindra",
+          Model: "NA",
+          Capacity: "16 Seater",
+          HireCharges: 35000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 1500,
+          Fuel_PerHour: 7,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "HiredConveyance",
+          EquipmentName: "BUS",
+          Make: "TATA",
+          Model: "NA",
+          Capacity: "52 Seater",
+          HireCharges: 48000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 1500,
+          Fuel_PerHour: 3,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Matl Handling",
+          EquipmentName: "Mobile Crane",
+          Make: "GROVE",
+          Model: "TELESCOPIC",
+          Capacity: "40T",
+          HireCharges: 450000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 150,
+          Fuel_PerHour: 0,
+          Power_PerHour: 3,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Matl Handling",
+          EquipmentName: "Mobile Crane",
+          Make: "GROVE",
+          Model: "TELESCOPIC",
+          Capacity: "20T",
+          HireCharges: 180000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 150,
+          Fuel_PerHour: 0,
+          Power_PerHour: 3,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Matl Handling",
+          EquipmentName: "Pick & Carry crane",
+          Make: "ACE",
+          Model: "NA",
+          Capacity: "12T",
+          HireCharges: 55000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 200,
+          Fuel_PerHour: 4,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Matl Transport",
+          EquipmentName: "TRACTOR WITH WATER TANKER",
+          Make: "Mahindra",
+          Model: "NA",
+          Capacity: "2T",
+          HireCharges: 22000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 200,
+          Fuel_PerHour: 2.5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Matl Transport",
+          EquipmentName: "TRACTOR WITH TRAILOR",
+          Make: "Mahindra",
+          Model: "NA",
+          Capacity: "2T",
+          HireCharges: 18000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 200,
+          Fuel_PerHour: 2.5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Others",
+          EquipmentName: "DeWatering Pump",
+          Make: "CDS",
+          Model: "Well point",
+          Capacity: "NA",
+          HireCharges: 150000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 300,
+          Fuel_PerHour: 0,
+          Power_PerHour: 35,
+          OperatorCost_PerMonth: 0,
+        },
+        {
+          Categoryname: "Others",
+          EquipmentName: "DeWatering Pump",
+          Make: "CDS",
+          Model: "Open",
+          Capacity: "NA",
+          HireCharges: 100000,
+          RAndMPercentage: 0,
+          Hrs_PerMonth: 300,
+          Fuel_PerHour: 0,
+          Power_PerHour: 35,
+          OperatorCost_PerMonth: 0,
+        },
+      ]);
+      console.log("HiredEquipment data seeded!");
+    }
+
+    // --- Seed LightingEquipment data (only if table is empty) ---
+    const lightingEquipmentCount = await LightingEquipment.count();
+    if (lightingEquipmentCount === 0) {
+      console.log("Seeding LightingEquipment data...");
+      await LightingEquipment.bulkCreate([
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "Area Lighting Ftgs Metal Halide (400Watts)",
+          Capacity: "400 W",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.54,
+          ConnectedLoad: 0.4,
+          UtilityFactor: 0.9,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "SpotLighting, site",
+          Capacity: "1000/ 500w",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.67,
+          ConnectedLoad: 0.5,
+          UtilityFactor: 0.95,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "Miscellaneous Equipments Grinder, Drill, Chipper, Blower,etc",
+          Capacity: "NA",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 13.4,
+          ConnectedLoad: 10,
+          UtilityFactor: 0.8,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "Office and Allied",
+          Capacity: "NA",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.5,
+          ConnectedLoad: 5,
+          UtilityFactor: 0.8,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "40W Tube Light",
+          Capacity: "40 W",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.04,
+          ConnectedLoad: 0.04,
+          UtilityFactor: 0.9,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "Metal Halide Ftg 250W",
+          Capacity: "250W",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.25,
+          ConnectedLoad: 0.25,
+          UtilityFactor: 0.95,
+        },
+        {
+          Categoryname: "Lighting",
+          EquipmentName: "Hand lamps 60W",
+          Capacity: "60W",
+          Make: "NA",
+          Model: "NA",
+          PowerPerUnit: 0.06,
+          ConnectedLoad: 0.06,
+          UtilityFactor: 0.95,
+        },
+      ]);
+      console.log("LightingEquipment data seeded!");
+    }
+    // --- END Seed LightingEquipment data ---
+
+    // Seed MajorEquipment data (only if table is empty)
+    const majorEquipmentCount = await MajorEquipment.count();
+    if (majorEquipmentCount === 0) {
+      console.log("Seeding MajorEquipment data...");
+      await MajorEquipment.bulkCreate([
+        {
+          Categoryname: "Non Concreting",
+          EquipmentName: "Passenger host",
+          Make: "Mekaster",
+          Model: "NA",
+          Capacity: "1200kg@200mtr",
+          Drive: "Electrical",
+          RepValue: 3500000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 120,
+          Fuel_PerHour: 0,
+          Power_PerHour: 10,
+          OperatorCost_PerMonth: 11000,
+          RAndMPer_275: 0.5,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.4,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 10,
+          ConnectedLoadPerMC: 18,
+          UtilityFactor: 0.8,
+        },
+        {
+          Categoryname: "Non Concreting",
+          EquipmentName: "Passenger Host",
+          Make: "Mekaster",
+          Model: "NA",
+          Capacity: "1200 kg @70 mtr",
+          Drive: "Electrical",
+          RepValue: 1800000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 120,
+          Fuel_PerHour: 0,
+          Power_PerHour: 10,
+          OperatorCost_PerMonth: 11000,
+          RAndMPer_275: 0.5,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.4,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 10,
+          ConnectedLoadPerMC: 18,
+          UtilityFactor: 0.8,
+        },
+        {
+          Categoryname: "Non Concreting",
+          EquipmentName: "Rope suspended platform",
+          Make: "Spartan",
+          Model: "SRP80",
+          Capacity: "1t cap",
+          Drive: "Electrical",
+          RepValue: 650000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 52,
+          Fuel_PerHour: 0,
+          Power_PerHour: 3.5,
+          OperatorCost_PerMonth: 10000,
+          RAndMPer_275: 0.9,
+          RAndMPer_125: 1.4,
+          RAndMPerc_050: 1.9,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 10,
+          ConnectedLoadPerMC: 6,
+          UtilityFactor: 0.8,
+        },
+        {
+          Categoryname: "Non Concreting",
+          EquipmentName: "Vibro Roller",
+          Make: "Ingersoll Rand",
+          Model: "IDD90",
+          Capacity: "9 Ton",
+          Drive: "Diesel",
+          RepValue: 2200000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 35,
+          Fuel_PerHour: 5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 11000,
+          RAndMPer_275: 0.9,
+          RAndMPer_125: 1.4,
+          RAndMPerc_050: 1.9,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "Non Concreting",
+          EquipmentName: "Vibro Roller",
+          Make: "L & T",
+          Model: "450",
+          Capacity: "3 Ton",
+          Drive: "Diesel",
+          RepValue: 1000000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 40,
+          Fuel_PerHour: 4,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 11000,
+          RAndMPer_275: 0.9,
+          RAndMPer_125: 1.4,
+          RAndMPerc_050: 1.9,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "DG Sets",
+          EquipmentName: "Diesel Generator Set",
+          Make: "Kirloskar",
+          Model: "NA",
+          Capacity: "125KVA",
+          Drive: "Diesel",
+          RepValue: 750000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 90,
+          Fuel_PerHour: 12,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 10000,
+          RAndMPer_275: 0.7,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.5,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "DG Sets",
+          EquipmentName: "Diesel Generator Set",
+          Make: "Kirloskar",
+          Model: "NA",
+          Capacity: "250KVA",
+          Drive: "Diesel",
+          RepValue: 1200000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 90,
+          Fuel_PerHour: 17,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 10000,
+          RAndMPer_275: 0.7,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.5,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "DG Sets",
+          EquipmentName: "Diesel Generator Set",
+          Make: "Kirloskar",
+          Model: "NA",
+          Capacity: "25KVA",
+          Drive: "Diesel",
+          RepValue: 400000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 90,
+          Fuel_PerHour: 3,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 9000,
+          RAndMPer_275: 0.7,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.5,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "DG Sets",
+          EquipmentName: "Diesel Generator Set",
+          Make: "Kirloskar",
+          Model: "NA",
+          Capacity: "40KVA",
+          Drive: "Diesel",
+          RepValue: 450000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 90,
+          Fuel_PerHour: 4.5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 8500,
+          RAndMPer_275: 0.7,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.5,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+        {
+          Categoryname: "DG Sets",
+          EquipmentName: "Diesel Generator Set",
+          Make: "Kirloskar",
+          Model: "NA",
+          Capacity: "62.5KVA",
+          Drive: "Diesel",
+          RepValue: 500000,
+          DepreciationPercentage: 0,
+          Depreciation_Fixed: 0,
+          Hrs_PerMonth: 90,
+          Fuel_PerHour: 5.5,
+          Power_PerHour: 0,
+          OperatorCost_PerMonth: 8500,
+          RAndMPer_275: 0.7,
+          RAndMPer_125: 1,
+          RAndMPerc_050: 1.5,
+          MaintCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 0,
+          ConnectedLoadPerMC: 0,
+          UtilityFactor: 0,
+        },
+      ]);
+      console.log("MajorEquipment data seeded!");
+    }
+
+    // Seed MinorEquipment data (only if table is empty)
+    const minorEquipmentCount = await MinorEquipment.count();
+    if (minorEquipmentCount === 0) {
+      console.log("Seeding MinorEquipment data...");
+      await MinorEquipment.bulkCreate([
+        {
+          Categoryname: "Minor Equipments",
+          EquipmentName: "Curing Pump 7.5HP",
+          Make: "Kirloskar",
+          Model: "KDT 852++",
+          Capacity: "NA",
+          Drive: "Electrical",
+          CostOfNewEquipment: 27000,
+          RAndMPercentage: 5,
+          Fuel_PerHour: 0,
+          Power_PerHour: 5,
+          DepreciationPercentage: 0,
+          Hrs_PerMonth: 100,
+          OperatorCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 7.5,
+          ConnectedLoadPerMC: 5.5,
+          UtilityFactor: 0.85,
+        },
+        {
+          Categoryname: "Minor Equipments",
+          EquipmentName: "Welding transformer / rectifier",
+          Make: "MEMCO-Local",
+          Model: "NA",
+          Capacity: "NA",
+          Drive: "Electrical",
+          CostOfNewEquipment: 45000,
+          RAndMPercentage: 3.5,
+          Fuel_PerHour: 0,
+          Power_PerHour: 7.2,
+          DepreciationPercentage: 0,
+          Hrs_PerMonth: 80,
+          OperatorCost_PerMonth: 0,
+          PowerPerUnit_x0028_HP_x0029_: 15,
+          ConnectedLoadPerMC: 11,
+          UtilityFactor: 0.8,
+        },
+      ]);
+      console.log("MinorEquipment data seeded!");
+    }
+  } catch (error) {
+    console.error("Error during database initialization:", error);
+  }
+})();
+
+module.exports = {
+  sequelize,
+  Project,
+  BPFixedExpense,
+  CategorySheet,
+  FixedExpense,
+  HiredEquipment,
+  LightingEquipment,
+  MajorEquipment,
+  MinorEquipment,
+};
