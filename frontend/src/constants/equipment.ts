@@ -1,4 +1,4 @@
-import { EquipmentCategoryType } from "../types/equipment";
+import type { EquipmentCategoryType } from "../types/equipment";
 
 export const EQUIPMENT_CATEGORY_MAP: Record<string, { endpoint: string; type: EquipmentCategoryType }> = {
   "Major Concrete": { endpoint: "majorequipments", type: "major" },

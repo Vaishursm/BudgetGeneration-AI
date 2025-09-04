@@ -36,6 +36,7 @@ interface ProjectFormValues {
   fuelCost: number | null;
   powerCost: number | null;
   filePath: string;
+  fileName: string;
 }
 
 const schema: yup.ObjectSchema<ProjectFormValues> = yup.object().shape({
@@ -80,10 +81,8 @@ const schema: yup.ObjectSchema<ProjectFormValues> = yup.object().shape({
     .typeError("Must be a number")
     .positive("Must be positive")
     .required("Power cost is required"),
-  filePath: yup
-    .string()
-    .required("Workbook path is required")
-    .matches(/\.(xlsx|xls)$/, "Must be .xlsx or .xls file"),
+  filePath: yup.string().required("Workbook directory is required"),
+  fileName: yup.string().required("File name is required").matches(/\.(xlsx|xls)$/, "Must be .xlsx or .xls file"),
 });
 
 export default function ProjectForm() {
@@ -142,6 +141,7 @@ export default function ProjectForm() {
       fuelCost: null,
       powerCost: null,
       filePath: "",
+      fileName: "",
     },
   });
 
@@ -180,6 +180,7 @@ export default function ProjectForm() {
             fuelCost: proj.fuelCost,
             powerCost: proj.powerCost,
             filePath: proj.filePath,
+            fileName: "",
           };
         });
         setExistingProjects(projectsData);
@@ -254,13 +255,14 @@ export default function ProjectForm() {
           fuelCost: proj.fuelCost,
           powerCost: proj.powerCost,
           filePath: proj.filePath,
+          fileName: "",
         };
       });
       setExistingProjects(projectsData);
       setIsNewProject(true);
     } catch (err: unknown) {
       // FIX: Type checker is unable to infer type within catch block. Using `any` as a workaround.
-      const error = err as any;
+      const error = err as Error;
       if (axios.isAxiosError(error)) {
         openNotification(
           "top",
@@ -545,7 +547,7 @@ export default function ProjectForm() {
 
         {/* File Path */}
         <Form.Item
-          label="Name & Location to save workbook"
+          label="Select Directory to save workbook"
           validateStatus={errors.filePath ? "error" : ""}
           help={errors.filePath?.message}
         >
@@ -554,41 +556,25 @@ export default function ProjectForm() {
             control={control}
             render={({ field }) => (
               <div style={{ display: "flex", gap: "8px" }}>
-                <div style={{ flex: 1 }}>
-                  <Input
-                    disabled={!isNewProject}
-                    type="text"
-                    placeholder="C:/path/to/workbook.xlsx"
-                    {...field}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      const value = e.target.value;
-                      if (value && !/\.(xlsx|xls)$/i.test(value)) {
-                        message.error(
-                          "Please enter a valid Excel file name (.xlsx or .xls)"
-                        );
-                      }
-                    }}
-                  />
-                  <p style={{ color: "red" }}>{errors.filePath?.message}</p>
-                </div>
-
-                {/* inside the Controller render for filePath */}
+                <Input
+                  disabled={true}
+                  type="text"
+                  placeholder="C:/path/to/workbook"
+                  {...field}
+                />
                 <Button
                   icon={<UploadOutlined />}
                   disabled={!isNewProject}
                   className="browse-btn"
                   onClick={async () => {
                     try {
-                      // ask main to show save dialog so user can pick exact file like D:/abc/test.xlsx
-                      const picked = await window.electronAPI.saveFileDialog({
-                        defaultPath: "workbook.xlsx",
-                      });
+                      //@ts-expect-error selectDirectory is exposed via preload
+                      const picked = await window.electronAPI.selectDirectory();
                       if (picked) {
                         field.onChange(picked);
                         openNotification(
                           "top",
-                          "File selected: " + picked,
+                          "Directory selected: " + picked,
                           "Success",
                           "success"
                         );
@@ -607,6 +593,26 @@ export default function ProjectForm() {
                   Browse
                 </Button>
               </div>
+            )}
+          />
+        </Form.Item>
+
+        {/* File Name */}
+        <Form.Item
+          label="Workbook File Name"
+          validateStatus={errors.fileName ? "error" : ""}
+          help={errors.fileName?.message}
+        >
+          <Controller
+            name="fileName"
+            control={control}
+            render={({ field }) => (
+              <Input
+                disabled={!isNewProject}
+                type="text"
+                placeholder="workbook.xlsx"
+                {...field}
+              />
             )}
           />
         </Form.Item>
