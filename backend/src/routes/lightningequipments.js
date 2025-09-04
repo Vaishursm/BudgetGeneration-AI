@@ -51,17 +51,13 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete lighting equipment by ID
 router.delete("/:id", async (req, res) => {
   try {
-    const deleted = await LightingEquipment.destroy({
-      where: { id: req.params.id },
-    });
-    if (deleted) {
-      res.status(204).send(); // No content
-    } else {
-      res.status(404).json({ error: "Lighting equipment not found" });
-    }
+    const expense = await LightingEquipment.findByPk(req.params.id);
+    if (!expense) return res.status(404).json({ error: "Lighting equipment not found" });
+
+    await expense.destroy();
+    res.json({ message: "Lighting equipment deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

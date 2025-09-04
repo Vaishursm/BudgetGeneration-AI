@@ -1,10 +1,12 @@
-// src/routes/fixedExpenses.js
+// src/routes/FixedExpense.js
 const express = require("express");
 const router = express.Router();
 const { FixedExpense } = require("../db/db");
 
-// Get all FixedExpenses
+
+// Get all FixedExpense
 router.get("/", async (req, res) => {
+  
   try {
     const fixedExpenses = await FixedExpense.findAll();
     res.json(fixedExpenses);

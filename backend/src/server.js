@@ -1,14 +1,16 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const { initializeDatabase } = require("./db/db");
+const {seedData} = require("./db/seed");
 
 const projectRoutes = require("./routes/projects");
 const bpFixedExpenses = require("./routes/bpfixedexpenses");
 const categorySheets = require("./routes/categorysheets");
-const fixedexpenses =  require("./routes/fixedexpenses");
+const fixedexpenses = require("./routes/fixedexpenses");
 const hiredEquipments = require("./routes/hiredequipments");
-const lightingEquipments =  require("./routes/lightningequipments");
-const majorEquipments =  require("./routes/majorequipments");
+const lightingEquipments = require("./routes/lightningequipments");
+const majorEquipments = require("./routes/majorequipments");
 const minorEquipments = require("./routes/minorequipments");
 
 const app = express();
@@ -26,6 +28,19 @@ app.use("/majorequipments", majorEquipments);
 app.use("/minorequipments", minorEquipments);
 
 const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+
+(async () => {
+  try {
+    await initializeDatabase(); // creates tables if not exist
+    await seedData();           // seeds data if empty
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running at http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Server startup failed:", err);
+    process.exit(1);
+  }
+})();
+
+
