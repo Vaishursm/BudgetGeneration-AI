@@ -1,11 +1,17 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
+const fs = require("fs");
 
 let mainWindow;
 let backendProcess;
 
+// Create a log file for the backend process
+const backendLogFile = path.join(__dirname, "backend.log");
+const backendLogStream = fs.createWriteStream(backendLogFile, { flags: "a" });
+
 function createWindow() {
+  console.log("Creating window...");
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -16,10 +22,12 @@ function createWindow() {
 
   if (process.env.ELECTRON_DEV) {
     // 🔹 Development
-    mainWindow.loadURL("http://localhost:3000");
+    console.log("Loading URL: http://localhost:5173");
+    mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
     // 🔹 Production
+    console.log("Loading file:", path.join(__dirname, "frontend-build", "index.html"));
     mainWindow.loadFile(path.join(__dirname, "frontend-build", "index.html"));
   }
 
@@ -29,21 +37,53 @@ function createWindow() {
 }
 
 function startBackend() {
-  const backendPath = path.join(__dirname, "backend", "src", "server.js");
+  console.log("Starting backend...");
+  const backendPath = process.env.ELECTRON_DEV
+    ? path.join(__dirname, "backend")
+    : path.join(process.resourcesPath, "backend");
 
-  backendProcess = spawn(process.execPath, [backendPath], {
-    env: { ...process.env, PORT: 5000 },
-    stdio: "inherit",
+  backendProcess = spawn("npm", ["run", "start"], {
+    cwd: backendPath,
+    shell: true,
+    stdio: ["ignore", backendLogStream, backendLogStream],
   });
 
   backendProcess.on("error", (err) => {
     console.error("❌ Failed to start backend:", err);
+    fs.appendFileSync(backendLogFile, `\n❌ Failed to start backend: ${err.toString()}\n`);
   });
+
+  backendProcess.on("exit", (code, signal) => {
+    console.log(`Backend process exited with code ${code} and signal ${signal}`);
+    fs.appendFileSync(backendLogFile, `\nBackend process exited with code ${code} and signal ${signal}\n`);
+  });
+}
+
+async function handleFileSave(event, options) {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, options);
+  if (canceled) {
+    return null;
+  } else {
+    return filePath;
+  }
+}
+
+async function handleDirectorySelect() {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory"],
+  });
+  if (canceled) {
+    return null;
+  } else {
+    return filePaths[0];
+  }
 }
 
 app.on("ready", () => {
   startBackend();
   createWindow();
+  ipcMain.handle("dialog:saveFile", handleFileSave);
+  ipcMain.handle("dialog:selectDirectory", handleDirectorySelect);
 });
 
 app.on("window-all-closed", () => {

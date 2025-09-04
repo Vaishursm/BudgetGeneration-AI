@@ -8,7 +8,7 @@ const {
   MinorEquipment,
 } = require("./db");
 
-const {sequelize} = require("sequelize")
+
  
 async function seedData() {
   try {

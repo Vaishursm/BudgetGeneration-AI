@@ -7,14 +7,21 @@
     "start": "concurrently \"npm run backend\" \"npm run frontend\"",
     "frontend": "cd frontend && npm run start",
     "backend": "cd backend && npm run start",
-    "electron:dev": "wait-on http://localhost:3000 && electron .",
-    "build:frontend": "cd frontend && npm run build && cp -r frontend/dist ../frontend-build",
+    "electron:dev": "cross-env ELECTRON_DEV=true npm-run-all --parallel frontend electron:start",
+    "electron:start": "wait-on http://localhost:5173 && electron .",
+    "build:frontend": "cd frontend && npm run build && cd .. && node copy-frontend.js",
     "dist": "npm run build:frontend && electron-builder"
   },
+  "dependencies": {
+    "cross-spawn": "^7.0.3",
+    "fs-extra": "^11.2.0"
+  },
   "devDependencies": {
+    "concurrently": "^7.0.0",
+    "cross-env": "^10.0.0",
     "electron": "^27.0.0",
     "electron-builder": "^24.0.0",
-    "concurrently": "^7.0.0",
+    "npm-run-all": "^4.1.5",
     "wait-on": "^6.0.0"
   },
   "build": {
@@ -23,11 +30,16 @@
       "main.js",
       "preload.js",
       "frontend-build/**",
-      "backend/**",
       "node_modules/**"
     ],
     "extraResources": [
-      "backend/**"
-    ]
+      {
+        "from": "backend",
+        "to": "backend"
+      }
+    ],
+    "win": {
+      "verifyUpdateCodeSignature": false
+    }
   }
 }
